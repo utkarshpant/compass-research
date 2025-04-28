@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:latest
+    container_name: compass_postgres_db
+    environment:
+      POSTGRES_USER: compass
+      POSTGRES_PASSWORD: cmps_db_87191511
+      POSTGRES_DB: cmps_db
+    volumes:
+      - data:/var/lib/postgresql/data
+    command: >
+      postgres -c shared_preload_libraries=pgvector # enable pgvector
+
+  redis:
+    image: redis:latest
+    container_name: compass_redis_cache
+    volumes:
+      - data:/var/lib/redis
+
+  grobid:
+    image: lfoppiano/grobid:0.8.0
+    container_name: grobid
+    ports: ["8070:8070"]
+    environment:
+      GROBID_MAXCONNECTIONS: 20
+
+volumes:
+  data:
