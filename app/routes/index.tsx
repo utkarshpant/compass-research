@@ -52,16 +52,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 	});
 	const { data }: { data: { workspaceId: Workspace['id']; ideas: Idea[] } } = fetcher;
 	const [searchParams, setSearchParams] = useSearchParams();
-	const [isDragging, setIsDragging] = useState(false);
-
+	
 	useEffect(() => {
 		if (data && !searchParams.has('workspaceId')) {
 			setSearchParams({ workspace: data.workspaceId });
 		}
-
-		window.addEventListener('dragenter', (event) => {
-			setIsDragging(true);
-		});
 	}, [data, searchParams]);
 
 	return (
@@ -121,7 +116,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 					title='Drag and drop papers here as you discover them.'
 					variant='small'
 				/>
-				<FileUploadDrawer open={isDragging} />
+				<FileUploadDrawer />
 
 				{/* <Outlet /> */}
 			</div>
