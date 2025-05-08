@@ -57,10 +57,10 @@ export function Idea({
 	return (
 		<motion.button
 			key={idea.id}
-			initial={{ opacity: 0, scale: 0.9 }}
+			initial={{ opacity: 0, scale: 0.7 }}
 			animate={{ opacity: 1, scale: 1 }}
-			className={`p-4 rounded-xl bg-cards flex flex-col gap-1 shadow-cards w-full ${
-				idea.primary ? 'border-amber-600' : 'border-transparent'
+			className={`p-4 rounded-xl bg-cards dark:bg-stone-950 flex flex-col gap-1 shadow-cards dark:shadow-xl dark:shadow-neutral-500/5 w-full ${
+				idea.primary ? 'border-amber-600' : 'border-transparent dark:border-neutral-500/20'
 			} border-2 cursor-pointer items-start`}
 			onClick={() => {
 				fetcher.submit(
@@ -76,7 +76,7 @@ export function Idea({
 				);
 			}}
 		>
-			<span className='font-sans text-xs tracking-wider font-semibold text-olive uppercase'>
+			<span className='font-sans text-xs tracking-wider font-semibold text-olive dark:text-stone-500 uppercase'>
 				Pathway
 			</span>
 			<span className='font-serif text-lg text-left'>{idea.name}</span>

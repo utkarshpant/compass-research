@@ -11,13 +11,14 @@ datasource db {
  * A Workspace is a space centered around a specific idea or concept, with the intent to _learn_ or _research_  it. Inside it, a user can chat with an AI, upload Resources, and create/link relevant Concepts that they discover. This creates "networks" of knowledge that can be explored and expanded upon.
  */
 model Workspace {
-    id       String        @id @default(uuid())
-    type     WorkspaceType
-    theme    String
-    
+    id    String        @id @default(uuid())
+    type  WorkspaceType
+    theme String
+
     // relations
-    concepts Concept[]     @relation("workspace_concept_mapping")
-    ideas    Idea[]        @relation("workspace_idea_mapping")
+    resources Resource[] @relation("workspace_resource_mapping")
+    concepts  Concept[]  @relation("workspace_concept_mapping")
+    ideas     Idea[]     @relation("workspace_idea_mapping")
 
     // metadata
     createdAt DateTime @default(now())
@@ -36,10 +37,9 @@ model Idea {
 
     // relations
     workspaces Workspace[] @relation("workspace_idea_mapping")
-
     // metadata
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    createdAt  DateTime    @default(now())
+    updatedAt  DateTime    @updatedAt
 
     @@map("ideas")
 }
@@ -98,9 +98,11 @@ model Concept {
 model Resource {
     id              String              @id @default(uuid())
     type            ResourceType
+    name            String // the name of the resource in minIO etc.
     content         String?
     embeddingStatus EmbeddingStatus     @default(PENDING)
     recommendation  ReadRecommendation?
+    workspaces      Workspace[]         @relation("workspace_resource_mapping")
 
     @@map("resources")
 }

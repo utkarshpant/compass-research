@@ -16,7 +16,7 @@ export function NumberedHeading({
 			<span
 				className={`rounded-full p-4 ${
 					variant === 'regular' ? 'max-h-12 max-w-14 text-xl my-2' : 'h-10 w-10 text-base'
-				} bg-neutral-300 font-semibold flex items-center justify-center`}
+				} bg-neutral-300 dark:bg-amber-50 text-black font-semibold flex items-center justify-center`}
 			>
 				{index}
 			</span>
