@@ -8,6 +8,8 @@ import prisma from '~/.server/db';
 import { Idea as IdeaComponent } from './api/workspace.update';
 import { AnimatePresence, motion } from 'motion/react';
 import FileUploadDrawer from '~/components/FileUploadDrawer';
+import { parseFormData } from '@mjackson/form-data-parser';
+import { uploadHandler } from '~/.server/fileUploadHandler';
 
 export function meta({}: Route.MetaArgs) {
 	return [
@@ -45,6 +47,25 @@ export async function loader({ request }: Route.LoaderArgs) {
 	return workspace;
 }
 
+export async function action({ request }: Route.ActionArgs) {
+	const formData = await parseFormData(request, uploadHandler);
+	const file = formData.get('compass-pdf') as File;
+	const workspaceId = formData.get('workspace') as string;
+	prisma.resource.create({
+		data: {
+			name: file.name,
+			type: 'FILE',
+			embeddingStatus: 'PENDING',
+			workspaces: {
+				connect: {
+					id: workspaceId,
+				},
+			},
+		},
+	});
+	return { file };
+}
+
 export default function Home({ loaderData }: Route.ComponentProps) {
 	const workspace = loaderData;
 	const fetcher = useFetcher({
@@ -52,12 +73,25 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 	});
 	const { data }: { data: { workspaceId: Workspace['id']; ideas: Idea[] } } = fetcher;
 	const [searchParams, setSearchParams] = useSearchParams();
-	
+
 	useEffect(() => {
 		if (data && !searchParams.has('workspaceId')) {
 			setSearchParams({ workspace: data.workspaceId });
 		}
 	}, [data, searchParams]);
+
+	const sortedIdeas =
+		workspace && workspace.ideas.length > 0
+			? workspace?.ideas.sort((a, b) => {
+					if (a.id < b.id) {
+						return -1;
+					}
+					if (a.id > b.id) {
+						return 1;
+					}
+					return 0;
+			  })
+			: [];
 
 	return (
 		<>
@@ -94,12 +128,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 				/>
 				{workspace || data ? (
 					<div className='flex flex-col gap-4'>
-						<span className='rounded-full text-xs font-medium uppercase tracking-wider bg-amber-300 w-fit px-4 py-2'>
+						<span className='rounded-full text-xs font-medium uppercase tracking-wider bg-amber-300 dark:bg-amber-500 w-fit px-4 py-2'>
 							We created a Workspace for you
 						</span>
-						<div className='flex flex-row gap-8 my-4 w-full'>
+						<div className='flex flex-col lg:flex-row gap-4 lg:gap-8 my-4 w-full'>
 							<AnimatePresence>
-								{workspace?.ideas.map((idea) => (
+								{sortedIdeas?.map((idea) => (
 									<IdeaComponent
 										idea={idea}
 										key={idea.id}
