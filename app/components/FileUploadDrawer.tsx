@@ -4,6 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { motion } from 'motion/react';
 import { useObjectUrls } from '~/hooks/useObjectUrls';
 import { useFetcher, useSearchParams, useSubmit } from 'react-router';
+import type { Resource } from '@prisma/client';
 
 export default function FileUploadDrawer() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -29,17 +30,17 @@ export default function FileUploadDrawer() {
 			'application/pdf': ['.pdf'],
 		},
 		multiple: false,
-		onDrop(acceptedFiles, fileRejections, event) {
+		onDrop(acceptedFiles) {
 			// package up into form data and send to server
 			const formData = new FormData();
 			acceptedFiles.forEach((file) => {
 				formData.append('compass-pdf', file);
-				formData.append('workspace', searchParams.get('workspace') || '');
+				// formData.append('workspace', searchParams.get('workspace') || '');
 			});
 			fetcher.submit(formData, {
 				method: 'POST',
 				encType: 'multipart/form-data',
-				action: `/?index`, // replace with actual workspace ID
+				action: `/api/resource?workspace=${searchParams.get('workspace')}`, // replace with actual workspace ID
 			});
 		},
 	});
@@ -95,4 +96,18 @@ export default function FileUploadDrawer() {
 			</Drawer.Portal>
 		</Drawer.Root>
 	);
+}
+
+function FileUploadPreview({ name, createdAt, recommendation }: Resource) {
+	if (file.type === 'application/pdf') {
+		return (
+			<motion.div
+				className='flex flex-col gap-2'
+				initial={{ opacity: 0, scale: 0.7 }}
+				animate={{ opacity: 1, scale: 1 }}
+			>
+				<p className='text-primary dark:text-stone-800'>{file.name}</p>
+			</motion.div>
+		);
+	}
 }

@@ -98,11 +98,16 @@ model Concept {
 model Resource {
     id              String              @id @default(uuid())
     type            ResourceType
-    name            String // the name of the resource in minIO etc.
+    externalId      String // the id of the resource in minIO etc.
+    originalName    String // the original name of the file/resource.
     content         String?
     embeddingStatus EmbeddingStatus     @default(PENDING)
     recommendation  ReadRecommendation?
     workspaces      Workspace[]         @relation("workspace_resource_mapping")
+
+    // metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     @@map("resources")
 }

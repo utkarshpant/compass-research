@@ -11,7 +11,7 @@ export function NumberedHeading({
 		<h1
 			className={`font-sans ${
 				variant === 'regular' ? 'font-medium text-6xl items-stretch -mx-14' : 'text-2xl items-baseline -mx-12'
-			} tracking-tight flex gap-2 max-w-[65ch] my-4`}
+			} tracking-tight flex gap-2 max-w-[65ch] my-4 select-none`}
 		>
 			<span
 				className={`rounded-full p-4 ${

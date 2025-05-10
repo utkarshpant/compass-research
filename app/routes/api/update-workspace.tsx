@@ -3,6 +3,7 @@ import type { Route } from '../+types';
 import { useFetcher } from 'react-router';
 import prisma from '~/.server/db';
 import { motion } from 'motion/react';
+import useSound from 'use-sound';
 
 export async function action({ request }: Route.ActionArgs) {
 	const { workspaceId, ideaId } = await request.json();
@@ -51,16 +52,20 @@ export function Idea({
 	idea: Idea;
 	workspaceId: Workspace['id'];
 }) {
+	const [playSelectionSound] = useSound('/button-6.wav');
 	const fetcher = useFetcher({
 		key: 'idea',
 	});
+	const selectedIdea = fetcher.data?.ideaId;
 	return (
 		<motion.button
 			key={idea.id}
 			initial={{ opacity: 0, scale: 0.7 }}
 			animate={{ opacity: 1, scale: 1 }}
-			className={`p-4 rounded-xl bg-cards dark:bg-stone-950 flex flex-col gap-1 shadow-cards dark:shadow-xl dark:shadow-neutral-500/5 w-full ${
-				idea.primary ? 'border-amber-600' : 'border-transparent dark:border-neutral-500/20'
+			className={`p-4 rounded-xl bg-cards dark:bg-stone-950 flex flex-col gap-1 w-full select-none ${
+				idea.primary || selectedIdea === idea.id
+					? 'border-amber-600 shadow-cards'
+					: 'border-transparent dark:border-neutral-500/20 shadow-neutral-500/5'
 			} border-2 cursor-pointer items-start`}
 			onClick={() => {
 				fetcher.submit(
@@ -74,7 +79,9 @@ export function Idea({
 						action: 'api/workspace/update',
 					}
 				);
+				playSelectionSound();
 			}}
+			layout
 		>
 			<span className='font-sans text-xs tracking-wider font-semibold text-olive dark:text-stone-500 uppercase'>
 				Pathway

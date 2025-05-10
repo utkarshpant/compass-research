@@ -1,8 +1,8 @@
-import type { Route } from './+types/conversation';
+import type { Route } from './+types/workspace';
 import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
-import { redirect } from 'react-router';
-import { nullable, z } from 'zod';
+import { isRouteErrorResponse } from 'react-router';
+import { z } from 'zod';
 import prisma from '~/.server/db';
 
 const openAI = new OpenAI();
@@ -15,6 +15,12 @@ export const IdeaSchema = z.object({
 		})
 	),
 });
+
+export function loader({}: Route.LoaderArgs) {
+	throw new Response('Sorry, this route expects only POST requests and you sent a GET request.', {
+		status: 405,
+	});
+}
 
 export async function action({ request, params }: Route.ActionArgs) {
 	const formData = await request.formData();
@@ -72,4 +78,22 @@ export async function action({ request, params }: Route.ActionArgs) {
 	// return redirect(`/?${searchParams}`, {
 	// 	status: 302,
 	// });
+}
+
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+	if (isRouteErrorResponse(error)) {
+		return (
+			<div className='p-12'>
+				<h1 className='font-medium text-4xl'>{error.status}</h1>
+				<h2>{error.data}</h2>
+			</div>
+		);
+	} else if (error instanceof Error) {
+		return (
+			<div className='p-12'>
+				<h1 className='font-medium text-4xl'>Error</h1>
+				<h2>{error.message}</h2>
+			</div>
+		);
+	}
 }

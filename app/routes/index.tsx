@@ -3,17 +3,17 @@ import { NumberedHeading } from '../components/NumberedHeading';
 import UserInput from '../components/UserInput';
 import { useFetcher, useSearchParams } from 'react-router';
 import type { Idea, Workspace } from '@prisma/client';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import prisma from '~/.server/db';
-import { Idea as IdeaComponent } from './api/workspace.update';
-import { AnimatePresence, motion } from 'motion/react';
+import { Idea as IdeaComponent } from './api/update-workspace';
+import { AnimatePresence } from 'motion/react';
 import FileUploadDrawer from '~/components/FileUploadDrawer';
-import { parseFormData } from '@mjackson/form-data-parser';
-import { uploadHandler } from '~/.server/fileUploadHandler';
+import { useSound } from 'use-sound';
+import Badge from '~/components/Badge';
 
-export function meta({}: Route.MetaArgs) {
+export function meta({ data }: Route.MetaArgs) {
 	return [
-		{ title: 'Compass for Literature Reviews' },
+		{ title: data ? data.theme : 'Compass for Literature Reviews' },
 		{
 			name: 'description',
 			content:
@@ -42,28 +42,19 @@ export async function loader({ request }: Route.LoaderArgs) {
 					updatedAt: true,
 				},
 			},
-		},
-	});
-	return workspace;
-}
-
-export async function action({ request }: Route.ActionArgs) {
-	const formData = await parseFormData(request, uploadHandler);
-	const file = formData.get('compass-pdf') as File;
-	const workspaceId = formData.get('workspace') as string;
-	prisma.resource.create({
-		data: {
-			name: file.name,
-			type: 'FILE',
-			embeddingStatus: 'PENDING',
-			workspaces: {
-				connect: {
-					id: workspaceId,
+			resources: {
+				select: {
+					id: true,
+					externalId: true,
+					type: true,
+					embeddingStatus: true,
+					createdAt: true,
+					updatedAt: true,
 				},
 			},
 		},
 	});
-	return { file };
+	return workspace;
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
@@ -73,12 +64,16 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 	});
 	const { data }: { data: { workspaceId: Workspace['id']; ideas: Idea[] } } = fetcher;
 	const [searchParams, setSearchParams] = useSearchParams();
+	const [playSuccessSound] = useSound('/success.wav', {
+		volume: 0.3,
+	});
 
 	useEffect(() => {
-		if (data && !searchParams.has('workspaceId')) {
+		if (fetcher.state === 'idle' && data && !searchParams.has('workspaceId')) {
+			playSuccessSound();
 			setSearchParams({ workspace: data.workspaceId });
 		}
-	}, [data, searchParams]);
+	}, [fetcher]);
 
 	const sortedIdeas =
 		workspace && workspace.ideas.length > 0
@@ -92,7 +87,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 					return 0;
 			  })
 			: [];
-
 	return (
 		<>
 			<div className='px-48 py-24'>
@@ -112,7 +106,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 					variant='small'
 				/>
 				<fetcher.Form
-					action='/api/conversation'
+					action='/api/workspace'
 					method='POST'
 				>
 					<UserInput
@@ -126,32 +120,59 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 					title='Select an idea to focus on initially.'
 					variant='small'
 				/>
-				{workspace || data ? (
-					<div className='flex flex-col gap-4'>
-						<span className='rounded-full text-xs font-medium uppercase tracking-wider bg-amber-300 dark:bg-amber-500 w-fit px-4 py-2'>
-							We created a Workspace for you
-						</span>
-						<div className='flex flex-col lg:flex-row gap-4 lg:gap-8 my-4 w-full'>
-							<AnimatePresence>
-								{sortedIdeas?.map((idea) => (
-									<IdeaComponent
-										idea={idea}
-										key={idea.id}
-										workspaceId={workspace.id}
-									/>
-								))}
-							</AnimatePresence>
+				<AnimatePresence>
+					{sortedIdeas ? (
+						<div className='flex flex-col gap-4'>
+							{fetcher.state === 'loading' ||
+							fetcher.state === 'submitting' ||
+							fetcher.data ||
+							(sortedIdeas && sortedIdeas.length > 0) ? (
+								<Badge
+									key='badge'
+									text={
+										fetcher.state !== 'idle'
+											? 'Working'
+											: 'We created a Workspace for you'
+									}
+								/>
+							) : null}
+							{sortedIdeas.length > 0 ? (
+								<div className='flex flex-col lg:flex-row gap-4 lg:gap-8 my-4 w-full'>
+									{sortedIdeas?.map((idea) => (
+										<IdeaComponent
+											idea={idea}
+											key={idea.id}
+											workspaceId={data?.workspaceId ?? workspace?.id}
+										/>
+									))}
+								</div>
+							) : null}
 						</div>
-					</div>
-				) : null}
+					) : null}
+				</AnimatePresence>
 
 				<NumberedHeading
 					index={3}
 					title='Drag and drop papers here as you discover them.'
 					variant='small'
 				/>
+				{workspace && workspace.resources.length > 0 ? (
+					<div className='flex flex-col lg:flex-row gap-4 lg:gap-8 my-4 w-full'>
+						<AnimatePresence>
+							{workspace.resources.map((resource) => (
+								<span>
+									{resource.name} - {resource.type}
+								</span>
+							))}
+						</AnimatePresence>
+					</div>
+				) : null}
 				<FileUploadDrawer />
-
+				<NumberedHeading
+					index={4}
+					title="You're all set - start exploring and asking questions!"
+					variant='small'
+				/>
 				{/* <Outlet /> */}
 			</div>
 		</>

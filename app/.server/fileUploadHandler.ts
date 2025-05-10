@@ -77,9 +77,24 @@ export class MinioFileStorage implements FileStorage {
 
 export const minioFileStorage = new MinioFileStorage();
 
-export async function uploadHandler(fileUpload: FileUpload) {
-	if (fileUpload.fieldName === 'compass-pdf') {
-		await minioFileStorage.set(fileUpload.name, fileUpload);
-		return await minioFileStorage.get(fileUpload.name);
-	}
-}
+// export async function uploadHandler(fileUpload: FileUpload) {
+// 	if (fileUpload.fieldName === 'compass-pdf') {
+// 		await minioFileStorage.set(fileUpload.name, fileUpload);
+// 		return await minioFileStorage.get(fileUpload.name);
+// 	}
+// }
+
+// /**
+//  * 
+//  * @param workspacePrefix - The prefix to add to file names. This should be the `workspaceId`.
+//  * @returns an upload handler that will upload the file to MinIO with the given prefix.
+//  */
+// export function uploadHandlerFactory(workspacePrefix: string) {
+// 	return async (fileUpload: FileUpload) => {
+// 		if (fileUpload.fieldName === 'compass-pdf') {
+// 			const key = `${workspacePrefix}-${fileUpload.name}`;
+// 			await minioFileStorage.set(key, fileUpload);
+// 			return await minioFileStorage.get(key);
+// 		}
+// 	};
+// }
