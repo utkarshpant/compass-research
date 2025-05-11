@@ -13,7 +13,7 @@ const {
 	MINIO_BUCKET = 'compass-pdfs',
 } = process.env;
 
-const minio = new MinioClient({
+export const minio = new MinioClient({
 	endPoint: 'localhost',
 	port: Number(MINIO_PORT),
 	useSSL: false,

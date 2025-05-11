@@ -1,7 +1,7 @@
 import { FileUpload, parseFormData } from "@mjackson/form-data-parser";
 import prisma from "~/.server/db";
 import { minioFileStorage } from "~/.server/fileUploadHandler";
-import type { Route } from "../+types";
+import type { Route } from "./+types/resource";
 
 export function loader({}: Route.LoaderArgs) {
     return null;
@@ -23,13 +23,13 @@ export async function action({ request }: Route.ActionArgs) {
         .create({
             data: {
                 // originalName and name
-                externalId: `${workspaceId}/${file.name}`,
-                originalName: file.name,
+                externalId: file.name,
+                originalName: file.name.split('/')[1],
                 type: 'FILE',
                 embeddingStatus: 'PENDING',
                 workspaces: {
                     connect: {
-                        id: workspaceId,
+                        id: workspaceId as string,
                     },
                 },
             },

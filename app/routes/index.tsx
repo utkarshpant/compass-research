@@ -33,25 +33,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 			id: workspaceId,
 		},
 		include: {
-			ideas: {
-				select: {
-					id: true,
-					name: true,
-					primary: true,
-					createdAt: true,
-					updatedAt: true,
-				},
-			},
-			resources: {
-				select: {
-					id: true,
-					externalId: true,
-					type: true,
-					embeddingStatus: true,
-					createdAt: true,
-					updatedAt: true,
-				},
-			},
+			ideas: true,
+			resources: true,
 		},
 	});
 	return workspace;
@@ -161,7 +144,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 						<AnimatePresence>
 							{workspace.resources.map((resource) => (
 								<span>
-									{resource.name} - {resource.type}
+									{resource.originalName} - {resource.type}
 								</span>
 							))}
 						</AnimatePresence>

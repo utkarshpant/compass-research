@@ -22,7 +22,7 @@ export function loader({}: Route.LoaderArgs) {
 	});
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request }: Route.ActionArgs) {
 	const formData = await request.formData();
 	const question = formData.get('question') as string;
 
