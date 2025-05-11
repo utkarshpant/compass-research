@@ -2,14 +2,16 @@ services:
   db:
     image: postgres:latest
     container_name: compass_postgres_db
+    restart: always
+    
     environment:
       POSTGRES_USER: compass
       POSTGRES_PASSWORD: cmps_db_87191511
-      POSTGRES_DB: cmps_db
+      POSTGRES_DB: cmpsdb
     volumes:
-      - data:/var/lib/postgresql/data
-    command: >
-      postgres -c shared_preload_libraries=pgvector # enable pgvector
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
   redis:
     image: redis:latest
@@ -24,5 +26,27 @@ services:
     environment:
       GROBID_MAXCONNECTIONS: 20
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: compass_qdrant
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  minio:
+    image: minio/minio:latest
+    container_name: compass_minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: compass_minio
+      MINIO_ROOT_PASSWORD: minio_151197
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
 volumes:
+  qdrant_data:    
+  postgres_data:
   data:
+  minio_data:

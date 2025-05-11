@@ -1,0 +1,199 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+/**
+ * A Workspace is a space centered around a specific idea or concept, with the intent to _learn_ or _research_  it. Inside it, a user can chat with an AI, upload Resources, and create/link relevant Concepts that they discover. This creates "networks" of knowledge that can be explored and expanded upon.
+ */
+model Workspace {
+    id    String        @id @default(uuid())
+    type  WorkspaceType
+    theme String
+
+    // relations
+    resources Resource[] @relation("workspace_resource_mapping")
+    concepts  Concept[]  @relation("workspace_concept_mapping")
+    ideas     Idea[]     @relation("workspace_idea_mapping")
+
+    // metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("workspaces")
+}
+
+/**
+ * When a user creates a Workspace, they can select an Idea that is relevant to the Workspace. This is a one-to-many relationship, defining the active "line of thought" that the user is pursuing. The "primary idea" of a Workspace can be changed at any time, and can be used to provide additional context about "intent" to LLMs.
+ */
+model Idea {
+    id      String  @id @default(uuid())
+    name    String
+    primary Boolean @default(false)
+
+    // relations
+    workspaces Workspace[] @relation("workspace_idea_mapping")
+    // metadata
+    createdAt  DateTime    @default(now())
+    updatedAt  DateTime    @updatedAt
+
+    @@map("ideas")
+}
+
+/**
+ * A Message is a single message in a conversation with an AI. It can be either a user message or an AI message. The `role` field indicates whether the message was sent by the user or the AI. The `content` field contains the text of the message.
+ */
+model Message {
+    id             String      @id @default(uuid())
+    role           String
+    content        MessageRole
+    conversationId String
+
+    // relations
+    conversation Conversation @relation(fields: [conversationId], references: [id])
+
+    // metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("messages")
+}
+
+model Conversation {
+    id       String    @id @default(uuid())
+    messages Message[]
+
+    // metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("conversations")
+}
+
+/**
+ * A Concept is any idea, thought, term, or topic that might be linked to the central idea of the current Workspace, that the user wants to remember. Additionally, the user's familiarity with the concept is rated on a scale of `noob`, `hem-haw`, `fluent`, `toolbox`, and `lookitup_baby` (just fun ways to express levels of understanding :)). Much like a Notion page, a Concept has a `content` field that can be edited in Markdown and will also be converted to embeddings so that a similarity search can be performed on it to answer questions.
+ */
+model Concept {
+    id              String          @id @default(uuid())
+    label           String
+    familiarity     Familiarity?    @default(NOOB)
+    content         String?
+    embeddingStatus EmbeddingStatus @default(PENDING)
+
+    // metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // relations
+    // workspace - concept is a many-to-many relationship
+    workspaces Workspace[] @relation("workspace_concept_mapping")
+
+    @@map("concepts")
+}
+
+model Resource {
+    id              String              @id @default(uuid())
+    type            ResourceType
+    externalId      String // the id of the resource in minIO etc.
+    originalName    String // the original name of the file/resource.
+    content         String?
+    embeddingStatus EmbeddingStatus     @default(PENDING)
+    recommendation  ReadRecommendation?
+    workspaces      Workspace[]         @relation("workspace_resource_mapping")
+
+    // metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("resources")
+}
+
+enum MessageRole {
+    /**
+     * The message was sent by the user.
+     */
+    USER
+    /**
+     * The message was sent by the AI.
+     */
+    AI
+}
+
+enum ReadRecommendation {
+    /**
+     * The resource is recommended for reading.
+     */
+    READ
+    /**
+     * The resource is not recommended for reading.
+     */
+    SKIP
+    /**
+     * The resource is recommended for reading, but only if the user has time.
+     */
+    SKIM
+}
+
+enum EmbeddingStatus {
+    /**
+     * The resource has not been processed yet.
+     */
+    PENDING
+    /**
+     * The resource has been processed and the embedding is ready to be used.
+     */
+    AVAILABLE
+}
+
+enum ResourceType {
+    /**
+     * A quick clip of a website, like a bookmark.
+     */
+    WEB_CLIPPING
+    /**
+     * A PDF.
+     */
+    FILE
+    /**
+     * An image or video (planned).
+     */
+    MEDIA
+}
+
+enum WorkspaceType {
+    /**
+     * The intention is to _learn_ about something.
+     */
+    LEARN
+    /**
+     * The intention is to _research_ about something, and potentially find research gaps or plans.
+     */
+    RESEARCH
+}
+
+enum Familiarity {
+    /**
+     * What's that?!
+     */
+    NOOB
+    /**
+     * Can make watercooler conversation about this
+     */
+    HEM_HAW
+    /**
+     * "Business proficiency"
+     */
+    FLUENT
+    /**
+     * Can wield it like a tool; approaching mastery
+     */
+    TOOLBOX
+    /**
+     * "I wrote the book on this - look it up."
+     */
+    LOOKITUP_BABY
+}
