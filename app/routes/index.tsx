@@ -3,13 +3,15 @@ import { NumberedHeading } from '../components/NumberedHeading';
 import UserInput from '../components/UserInput';
 import { useFetcher, useSearchParams } from 'react-router';
 import type { Idea, Workspace } from '@prisma/client';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import prisma from '~/.server/db';
 import { Idea as IdeaComponent } from './api/update-workspace';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import FileUploadDrawer from '~/components/FileUploadDrawer';
 import { useSound } from 'use-sound';
 import Badge from '~/components/Badge';
+import { useChat } from '~/hooks/useChat';
+import Arrow from '~/components/Arrow';
 
 export function meta({ data }: Route.MetaArgs) {
 	return [
@@ -57,6 +59,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 			setSearchParams({ workspace: data.workspaceId });
 		}
 	}, [fetcher]);
+
+	const { messages, isLoading, error, send, abort } = useChat(workspace.id);
+
+	const inputRef = useRef<HTMLTextAreaElement>(null);
 
 	const sortedIdeas =
 		workspace && workspace.ideas.length > 0
@@ -140,10 +146,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 					variant='small'
 				/>
 				{workspace && workspace.resources.length > 0 ? (
-					<div className='flex flex-col lg:flex-row gap-4 lg:gap-8 my-4 w-full'>
+					<div className='flex flex-col lg:flex-row gap-4 lg:gap-8 my-4 w-full overflow-auto no-scrollbar'>
 						<AnimatePresence>
 							{workspace.resources.map((resource) => (
-								<span>
+								<span key={resource.id}>
 									{resource.originalName} - {resource.type}
 								</span>
 							))}
@@ -156,6 +162,63 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 					title="You're all set - start exploring and asking questions!"
 					variant='small'
 				/>
+				<div className='flex flex-col gap-4 my-2 w-full'>
+					<AnimatePresence>
+						{messages.map((message) => (
+							<motion.div
+								initial={{ opacity: 0, y: 15 }}
+								animate={{ opacity: 1, y: 0 }}
+								key={message.id}
+								className={`flex flex-col gap-2 selection:bg-stone-400 ${
+									message.role === 'user' ? 'items-end' : 'items-start'
+								}`}
+							>
+								<span
+									className={`${
+										message.role === 'user' ? 'bg-stone-300 text-black' : ''
+									} px-6 py-4 rounded-2xl rounded-br-sm max-w-xs font-serif text-base font-medium`}
+								>
+									{message.content}
+								</span>
+							</motion.div>
+						))}
+					</AnimatePresence>
+					{error && <p>Error: {error.message}</p>}
+				</div>
+				<fetcher.Form
+					action={`/api/workspace/${workspace?.id}/conversation`}
+					method='POST'
+					className='flex flex-row gap-4 w-full'
+					onSubmit={(e) => {
+						e.preventDefault();
+						const message = inputRef.current?.value;
+						if (message) {
+							send(message);
+						}
+					}}
+				>
+					<div className='flex flex-row gap-4 justify-between items-center w-full'>
+						<UserInput
+							placeholder='Send a message'
+							ref={inputRef}
+							required
+						/>
+						<button
+							type='submit'
+							className='bg-black text-white h-auto max-h-14 p-4 rounded-full text-xs font-sans uppercase font-medium tracking-wider'
+							disabled={isLoading}
+							onClick={() => {
+								const message = inputRef.current?.value;
+								if (message) {
+									send(message);
+									inputRef.current.value = '';
+								}
+							}}
+						>
+							{isLoading ? 'Loading...' : <Arrow.Right />}
+						</button>
+					</div>
+				</fetcher.Form>
 				{/* <Outlet /> */}
 			</div>
 		</>
