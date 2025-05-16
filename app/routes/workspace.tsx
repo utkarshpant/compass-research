@@ -49,7 +49,7 @@ export default function Workspace({ loaderData }: Route.ComponentProps) {
 	return (
 		<div className='p-16'>
 			<h6 className='font-sans text-sm tracking-wider uppercase'>THEME</h6>
-			<h1 className='text-6xl font-serif font-light italic'>{theme}</h1>
+			<h1 className='text-6xl font-serif font-light tracking-tight'>{theme}</h1>
 		</div>
 	);
 }

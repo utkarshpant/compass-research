@@ -19,10 +19,10 @@ model Workspace {
     resources Resource[] @relation("workspace_resource_mapping")
     concepts  Concept[]  @relation("workspace_concept_mapping")
     ideas     Idea[]     @relation("workspace_idea_mapping")
-
+    messages  Message[]
     // metadata
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
 
     @@map("workspaces")
 }
@@ -48,13 +48,13 @@ model Idea {
  * A Message is a single message in a conversation with an AI. It can be either a user message or an AI message. The `role` field indicates whether the message was sent by the user or the AI. The `content` field contains the text of the message.
  */
 model Message {
-    id             String      @id @default(uuid())
-    role           String
-    content        MessageRole
-    conversationId String
+    id          String      @id @default(uuid())
+    role        MessageRole
+    content     String
+    workspaceId String
 
     // relations
-    conversation Conversation @relation(fields: [conversationId], references: [id])
+    workspace Workspace @relation(fields: [workspaceId], references: [id])
 
     // metadata
     createdAt DateTime @default(now())
@@ -63,16 +63,16 @@ model Message {
     @@map("messages")
 }
 
-model Conversation {
-    id       String    @id @default(uuid())
-    messages Message[]
+// model Conversation {
+//     id       String    @id @default(uuid())
+//     messages Message[]
 
-    // metadata
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+//     // metadata
+//     createdAt DateTime @default(now())
+//     updatedAt DateTime @updatedAt
 
-    @@map("conversations")
-}
+//     @@map("conversations")
+// }
 
 /**
  * A Concept is any idea, thought, term, or topic that might be linked to the central idea of the current Workspace, that the user wants to remember. Additionally, the user's familiarity with the concept is rated on a scale of `noob`, `hem-haw`, `fluent`, `toolbox`, and `lookitup_baby` (just fun ways to express levels of understanding :)). Much like a Notion page, a Concept has a `content` field that can be edited in Markdown and will also be converted to embeddings so that a similarity search can be performed on it to answer questions.
@@ -116,11 +116,11 @@ enum MessageRole {
     /**
      * The message was sent by the user.
      */
-    USER
+    user
     /**
      * The message was sent by the AI.
      */
-    AI
+    system
 }
 
 enum ReadRecommendation {

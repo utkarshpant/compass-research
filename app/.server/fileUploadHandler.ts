@@ -1,7 +1,6 @@
 // MinioFileStorage.ts
 import { Client as MinioClient } from 'minio';
 import type { FileStorage } from '@mjackson/file-storage';
-import { type FileUpload } from '@mjackson/form-data-parser';
 import { Readable } from 'stream';
 
 const {
