@@ -57,8 +57,12 @@ const UserInput = forwardRef<UserInputHandle, UserInputProps>(function UserInput
 			/>
 		);
 	}
+	console.log(textAreaText);
 	return (
-		<div className='flex flex-col w-full relative'>
+		<div
+			className='flex flex-col w-full relative'
+			onClick={() => textAreaRef.current?.focus()}
+		>
 			{!textAreaText && (
 				<p className='absolute top-6 left-6 text-white/70 font-serif'>{placeholder}</p>
 			)}
@@ -70,7 +74,11 @@ const UserInput = forwardRef<UserInputHandle, UserInputProps>(function UserInput
 				contentEditable={!disabled}
 				onInput={(e) => {
 					const target = e.target as HTMLDivElement;
-					setTextAreaText(target.innerText.trim());
+					if (target.innerText !== ' ') {
+						setTextAreaText(
+							textAreaText.trim() === '' ? target.innerText : target.innerText.trim()
+						);
+					}
 				}}
 				suppressContentEditableWarning
 				{...props}
