@@ -1,5 +1,4 @@
 import { Queue, QueueEvents, Worker, type Processor } from 'bullmq';
-import Redis from 'ioredis';
 import prisma from '../db';
 import { minio } from '../fileUploadHandler';
 import { chunkPdf } from '../utils/resource-utils';
@@ -7,10 +6,7 @@ import OpenAI from 'openai';
 import { qdrant } from '../utils/qdrant';
 import { summary_prompt, summarySchema } from '../utils/openai';
 import { zodTextFormat } from 'openai/helpers/zod.mjs';
-
-export const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379/0', {
-	maxRetriesPerRequest: null,
-});
+import { redis } from '../utils/redis';
 
 type RegisteredQueue = {
 	queue: Queue;

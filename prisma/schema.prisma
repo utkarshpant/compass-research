@@ -49,8 +49,8 @@ model Idea {
  */
 model Message {
     id          String      @id @default(uuid())
-    role        String
-    content     MessageRole
+    role        MessageRole
+    content     String
     workspaceId String
 
     // relations
@@ -116,11 +116,11 @@ enum MessageRole {
     /**
      * The message was sent by the user.
      */
-    USER
+    user
     /**
      * The message was sent by the AI.
      */
-    AI
+    system
 }
 
 enum ReadRecommendation {

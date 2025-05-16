@@ -1,6 +1,6 @@
 import type { Workspace } from '@prisma/client';
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { useEventSource } from 'remix-utils/sse/react';
+import { useSearchParams } from 'react-router';
 
 export type ChatMessage = {
 	id: string;
@@ -8,8 +8,14 @@ export type ChatMessage = {
 	content: string;
 };
 
-export function useChat(workspaceId: Workspace['id']) {
-	const [messages, setMessages] = useState<ChatMessage[]>([]);
+export function useChat({
+	workspaceId,
+	initialMessages,
+}: {
+	workspaceId?: Workspace['id'];
+	initialMessages?: ChatMessage[];
+}) {
+	const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
 
@@ -32,44 +38,14 @@ export function useChat(workspaceId: Workspace['id']) {
 
 			// close a connection to the existing event source;
 			eventSourceRef.current?.close();
-			// set up a new connection for this request;
-			eventSourceRef.current = new EventSource(`/api/workspace/${workspaceId}/conversation`, {
-				withCredentials: false,
-			});
 
 			// define what happens on every message;
-            const assistantMessage: ChatMessage = {
-                id: crypto.randomUUID(),
-                role: 'assistant',
-                content: '',
-            };
-            setMessages((prevMessages) => [...prevMessages, assistantMessage]);
-			eventSourceRef.current.onmessage = (event) => {
-                console.log(event);
-				if (event.data === '[DONE]') {
-					setIsLoading(false);
-					eventSourceRef.current?.close();
-					return;
-				}
-				setMessages((messages) =>
-					messages.map((message) => {
-						if (message.id !== assistantMessage.id) {
-							return message;
-						} else {
-							return { ...message, content: message.content + " " + event.data };
-						}
-					})
-				);
+			const assistantMessage: ChatMessage = {
+				id: '',
+				role: 'assistant',
+				content: '',
 			};
-
-			// error handling;
-			eventSourceRef.current.onerror = (event) => {
-				setIsLoading(false);
-				setError(new Error('An error occurred while processing your request.'));
-				eventSourceRef.current?.close();
-			};
-
-            console.log(eventSourceRef.current);
+			setMessages((prevMessages) => [...prevMessages, assistantMessage]);
 
 			// actually kick off the POST request;
 			const response = await fetch(`/api/workspace/${workspaceId}/conversation`, {
@@ -78,6 +54,52 @@ export function useChat(workspaceId: Workspace['id']) {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify(userMessage),
+			});
+			await response.json().then((data) => {
+				eventSourceRef.current = new EventSource(
+					`/api/workspace/${workspaceId}/conversation?jobId=${data?.job.id}`,
+					{
+						withCredentials: false,
+					}
+				);
+
+				eventSourceRef.current.addEventListener('meta', (event) => {
+					// update assistant message ID with the ID of the message;
+					setMessages((messages) =>
+						messages.map((message) =>
+							message.id === '' && message.role === 'assistant'
+								? { ...message, id: event.data }
+								: message
+						)
+					);
+					assistantMessage.id = event.data;
+				});
+
+				eventSourceRef.current.addEventListener('done', (event) => {
+					setIsLoading(false);
+					eventSourceRef.current?.close();
+					return;
+				});
+
+				eventSourceRef.current.addEventListener('message', (event) => {
+					setMessages((messages) =>
+						messages.map((message) => {
+							if (message.id !== assistantMessage.id) {
+								return message;
+							} else {
+								return { ...message, content: message.content + event.data };
+							}
+						})
+					);
+				});
+				// error handling;
+				eventSourceRef.current?.addEventListener('error', (event) => {
+					setIsLoading(false);
+					// log the error;
+					console.error('Error occurred while processing the request:', event);
+					setError(new Error('An error occurred while processing your request.'));
+					eventSourceRef.current?.close();
+				});
 			});
 		},
 		[workspaceId]

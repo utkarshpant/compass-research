@@ -1,6 +1,6 @@
 import type { Route } from './+types/index';
 import { NumberedHeading } from '../components/NumberedHeading';
-import UserInput from '../components/UserInput';
+import UserInput, { type UserInputHandle } from '../components/UserInput';
 import { useFetcher, useSearchParams } from 'react-router';
 import type { Idea, Workspace } from '@prisma/client';
 import { useEffect, useRef } from 'react';
@@ -12,6 +12,8 @@ import { useSound } from 'use-sound';
 import Badge from '~/components/Badge';
 import { useChat } from '~/hooks/useChat';
 import Arrow from '~/components/Arrow';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export function meta({ data }: Route.MetaArgs) {
 	return [
@@ -30,13 +32,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 	if (!workspaceId) {
 		return null;
 	}
-	const workspace = await prisma.workspace.findUnique({
+	const workspace = await prisma.workspace.findUniqueOrThrow({
 		where: {
 			id: workspaceId,
 		},
 		include: {
 			ideas: true,
 			resources: true,
+			messages: true,
 		},
 	});
 	return workspace;
@@ -60,9 +63,16 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 		}
 	}, [fetcher]);
 
-	const { messages, isLoading, error, send, abort } = useChat(workspace.id);
+	const { messages, isLoading, error, send, abort } = useChat({
+		workspaceId: workspace?.id,
+		initialMessages:
+			workspace?.messages?.map((message) => ({
+				...message,
+				role: message.role,
+			})) ?? [],
+	});
 
-	const inputRef = useRef<HTMLTextAreaElement>(null);
+	const inputRef = useRef<UserInputHandle>(null);
 
 	const sortedIdeas =
 		workspace && workspace.ideas.length > 0
@@ -164,24 +174,33 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 				/>
 				<div className='flex flex-col gap-4 my-2 w-full'>
 					<AnimatePresence>
-						{messages.map((message) => (
-							<motion.div
-								initial={{ opacity: 0, y: 15 }}
-								animate={{ opacity: 1, y: 0 }}
-								key={message.id}
-								className={`flex flex-col gap-2 selection:bg-stone-400 ${
-									message.role === 'user' ? 'items-end' : 'items-start'
-								}`}
-							>
-								<span
-									className={`${
-										message.role === 'user' ? 'bg-stone-300 text-black' : ''
-									} px-6 py-4 rounded-2xl rounded-br-sm max-w-xs font-serif text-base font-medium`}
+						{messages.map((message) =>
+							message.content ? (
+								<motion.div
+									initial={{ opacity: 0, y: 15 }}
+									animate={{ opacity: 1, y: 0 }}
+									style={{
+										width: message.role === 'user' ? 'auto' : '100%',
+									}}
+									key={message.id}
+									className={`flex flex-col gap-2 selection:bg-stone-400 ${
+										message.role === 'user' ? 'items-end' : 'items-start'
+									}`}
 								>
-									{message.content}
-								</span>
-							</motion.div>
-						))}
+									<span
+										className={`${
+											message.role === 'user'
+												? 'bg-stone-300 dark:bg-primary text-black'
+												: ''
+										} px-6 py-4 rounded-2xl rounded-br-sm max-w-xs font-serif text-base font-medium min-w-full prose dark:prose-invert`}
+									>
+										<Markdown remarkPlugins={[remarkGfm]}>
+											{message.content}
+										</Markdown>
+									</span>
+								</motion.div>
+							) : null
+						)}
 					</AnimatePresence>
 					{error && <p>Error: {error.message}</p>}
 				</div>
@@ -198,11 +217,21 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 					}}
 				>
 					<div className='flex flex-row gap-4 justify-between items-center w-full'>
-						<UserInput
-							placeholder='Send a message'
-							ref={inputRef}
-							required
-						/>
+						<div className='flex flex-col gap-2 items-start w-full'>
+							{isLoading ? (
+								<p className='font-sans font-medium text-xs tracking-wider text-olive uppercase'>
+									Loading
+								</p>
+							) : null}
+							<UserInput
+								placeholder='Send a message'
+								ref={inputRef}
+								disabled={isLoading || !workspace?.id}
+								type='textarea'
+								required
+							/>
+						</div>
+
 						<button
 							type='submit'
 							className='bg-black text-white h-auto max-h-14 p-4 rounded-full text-xs font-sans uppercase font-medium tracking-wider'
@@ -211,11 +240,14 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 								const message = inputRef.current?.value;
 								if (message) {
 									send(message);
-									inputRef.current.value = '';
+									if (inputRef.current) {
+										inputRef.current.reset();
+									}
 								}
 							}}
+							title='submit message'
 						>
-							{isLoading ? 'Loading...' : <Arrow.Right />}
+							<Arrow.Right />
 						</button>
 					</div>
 				</fetcher.Form>
